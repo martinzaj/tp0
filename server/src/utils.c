@@ -4,7 +4,6 @@ t_log* logger;
 
 int iniciar_servidor(void)
 {
-
     int socket_servidor;
 
     struct addrinfo hints, *servinfo, *p;
@@ -18,12 +17,28 @@ int iniciar_servidor(void)
 
     // Creamos el socket de escucha del servidor
     socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+    
+    if (socket_servidor == -1) {
+    log_error(logger, "Error al crear socket del servidor");
+    freeaddrinfo(servinfo);
+    return -1;
+    }
 
     // Asociamos el socket a un puerto
-    bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
+    if (bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+    log_error(logger, "Error en bind");
+    close(socket_servidor);
+    freeaddrinfo(servinfo);
+    return -1;
+    }
 
     // Escuchamos las conexiones entrantes
-    listen(socket_servidor, SOMAXCONN);
+    if (listen(socket_servidor, SOMAXCONN) == -1) {
+    log_error(logger, "Error en listen");
+    close(socket_servidor);
+    freeaddrinfo(servinfo);
+    return -1;
+    }
 
     freeaddrinfo(servinfo);
     log_trace(logger, "Listo para escuchar a mi cliente");
@@ -36,6 +51,12 @@ int esperar_cliente(int socket_servidor)
 
     // Aceptamos un nuevo cliente
     int socket_cliente = accept(socket_servidor, NULL, NULL);
+    
+    if (socket_cliente == -1) {
+    log_error(logger, "Error al aceptar cliente");
+    return -1;
+    }
+
     log_info(logger, "Se conecto un cliente!");
 
     return socket_cliente;
